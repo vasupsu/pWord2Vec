@@ -24,11 +24,7 @@
 #include <omp.h>
 
 #ifdef USE_MKL
-#ifndef OpenBLAS
 #include "mkl.h"
-#else
-#include <cblas.h>
-#endif
 #endif
 
 using namespace std;
@@ -362,9 +358,7 @@ ulonglong loadStream(FILE *fin, int *stream, const ulonglong total_words) {
 void Train_SGNS() {
 
 #ifdef USE_MKL
-#ifndef OpenBLAS
     mkl_set_num_threads(1);
-#endif
 #endif
 
     if (read_vocab_file[0] != 0) {
