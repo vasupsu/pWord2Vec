@@ -19,10 +19,16 @@
 #include <cstring>
 #include <cmath>
 #include <algorithm>
+#include <stdlib.h>
+#include <stdio.h>
 #include <omp.h>
 
 #ifdef USE_MKL
+#ifndef OpenBLAS
 #include "mkl.h"
+#else
+#include <cblas.h>
+#endif
 #endif
 
 using namespace std;
@@ -356,7 +362,9 @@ ulonglong loadStream(FILE *fin, int *stream, const ulonglong total_words) {
 void Train_SGNS() {
 
 #ifdef USE_MKL
+#ifndef OpenBLAS
     mkl_set_num_threads(1);
+#endif
 #endif
 
     if (read_vocab_file[0] != 0) {
@@ -373,17 +381,19 @@ void Train_SGNS() {
 
     real starting_alpha = alpha;
     ulonglong word_count_actual = 0;
-    double start = 0;
+    double start = 0, end = 0, sgemm1Time=0, sgemm2Time=0, sgemm3Time=0, memcpyTime=0, iTime1=0, iTime2=0, graphConsTime=0, befForTime=0, aftForTime=0, oTime1=0, oTime2=0, overheadTime=0;
+    ulonglong sgemm1Fl=0, sgemm2Fl=0, sgemm3Fl=0;
 
     #pragma omp parallel num_threads(num_threads)
     {
+        double stime, etime;
         int id = omp_get_thread_num();
         int local_iter = iter;
         ulonglong  next_random = id;
         ulonglong word_count = 0, last_word_count = 0;
         int sentence_length = 0, sentence_position = 0;
         int sen[MAX_SENTENCE_LENGTH] __attribute__((aligned(64)));
-
+	int numWindowsProcessed = 0, numWordsProcessed = 0;
         // load stream
         FILE *fin = fopen(train_file, "rb");
         fseek(fin, file_size * id / num_threads, SEEK_SET);
@@ -409,12 +419,12 @@ void Train_SGNS() {
 
         #pragma omp barrier
 
-        if (id == 0)
         {
             start = omp_get_wtime();
         }
 
         while (1) {
+            stime = omp_get_wtime();
             if (word_count - last_word_count > 10000) {
                 ulonglong diff = word_count - last_word_count;
                 #pragma omp atomic
@@ -494,12 +504,24 @@ void Train_SGNS() {
                 }
             }
 
+            etime = omp_get_wtime();
+            if (id == 0)
+            {
+                befForTime += (etime - stime);
+            }
+            stime = omp_get_wtime();
+
             int num_batches = num_inputs / batch_size + ((num_inputs % batch_size > 0) ? 1 : 0);
 
             // start mini-batches
             for (int b = 0; b < num_batches; b++) {
 
                 // generate negative samples for output layer
+                double stime1=0,etime1=0, stime2=0, etime2=0;
+                if (id==0)
+                {
+                    stime1 = omp_get_wtime();
+                }
                 int offset = 1;
                 for (int k = 0; k < negative; k++) {
                     next_random = next_random * (ulonglong) 25214903917 + 11;
@@ -522,8 +544,18 @@ void Train_SGNS() {
                 // fetch input sub model
                 int input_start = b * batch_size;
                 int input_size  = min(batch_size, num_inputs - input_start);
+                if (id==0)
+                {
+                    stime2 = omp_get_wtime();
+                }
                 for (int i = 0; i < input_size; i++) {
                     memcpy(inputM + i * hidden_size, Wih + inputs[input_start + i] * hidden_size, hidden_size * sizeof(real));
+                }
+                if (id==0)
+                {
+                    etime2 = omp_get_wtime();
+                    iTime1 += (etime2 - stime2);
+                    stime2 = etime2;
                 }
                 // fetch output sub model
                 int output_size = outputs.length;
@@ -531,6 +563,12 @@ void Train_SGNS() {
                     memcpy(outputM + i * hidden_size, Woh + outputs.indices[i] * hidden_size, hidden_size * sizeof(real));
                 }
 
+                if (id==0)
+                {
+                    etime1 = omp_get_wtime();
+                    iTime2 += (etime1-stime2);
+                    memcpyTime += (etime1 - stime1);
+                }
 #ifndef USE_MKL
                 for (int i = 0; i < output_size; i++) {
                     int c = outputs.meta[i];
@@ -551,6 +589,10 @@ void Train_SGNS() {
                     }
                 }
 #else
+                if (id==0)
+                {
+                    stime1 = omp_get_wtime();
+                }
                 cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasTrans, output_size, input_size, hidden_size, 1.0f, outputM,
                         hidden_size, inputM, hidden_size, 0.0f, corrM, input_size);
                 for (int i = 0; i < output_size; i++) {
@@ -569,6 +611,12 @@ void Train_SGNS() {
                         corrM[offset + j] = f * c;
                     }
                 }
+                if (id==0)
+                {
+                    etime1 = omp_get_wtime();
+                    sgemm1Time += (etime1 - stime1);
+                    sgemm1Fl += 2*output_size*input_size*hidden_size;
+                }
 #endif
 
 #ifndef USE_MKL
@@ -583,8 +631,18 @@ void Train_SGNS() {
                     }
                 }
 #else
+                if (id==0)
+                {
+                    stime1 = omp_get_wtime();
+                }
                 cblas_sgemm(CblasRowMajor, CblasNoTrans, CblasNoTrans, output_size, hidden_size, input_size, 1.0f, corrM,
                         input_size, inputM, hidden_size, 0.0f, outputMd, hidden_size);
+                if (id==0)
+                {
+                    etime1 = omp_get_wtime();
+                    sgemm2Time += (etime1 - stime1);
+                    sgemm2Fl += 2*output_size*input_size*hidden_size;
+                }
 #endif
 
 #ifndef USE_MKL
@@ -599,11 +657,25 @@ void Train_SGNS() {
                     }
                 }
 #else
+                if (id==0)
+                {
+                    stime1 = omp_get_wtime();
+                }
                 cblas_sgemm(CblasRowMajor, CblasTrans, CblasNoTrans, input_size, hidden_size, output_size, 1.0f, corrM,
                         input_size, outputM, hidden_size, 0.0f, inputM, hidden_size);
+                if (id==0)
+                {
+                    etime1 = omp_get_wtime();
+                    sgemm3Time += (etime1 - stime1);
+                    sgemm3Fl += 2*output_size*input_size*hidden_size;
+                }
 #endif
 
                 // subnet update
+                if (id == 0)
+                {
+                    stime1 = omp_get_wtime();
+                }
                 for (int i = 0; i < input_size; i++) {
                     int src = i * hidden_size;
                     int des = inputs[input_start + i] * hidden_size;
@@ -611,6 +683,12 @@ void Train_SGNS() {
                     for (int j = 0; j < hidden_size; j++) {
                         Wih[des + j] += inputM[src + j];
                     }
+                }
+                if (id == 0)
+                {
+                    etime1 = omp_get_wtime();
+                    oTime1  += (etime1 - stime1);
+                    stime1 = etime1;
                 }
 
                 for (int i = 0; i < output_size; i++) {
@@ -621,6 +699,11 @@ void Train_SGNS() {
                         Woh[des + j] += outputMd[src + j];
                     }
                 }
+                if (id == 0)
+                {
+                    etime1 = omp_get_wtime();
+                    oTime2  += (etime1 - stime1);
+                }
 
             }
 
@@ -628,7 +711,17 @@ void Train_SGNS() {
             if (sentence_position >= sentence_length) {
                 sentence_length = 0;
             }
+            etime = omp_get_wtime();
+            if (id == 0)
+            {
+                aftForTime += (etime - stime);
+            }
         }
+	if (id == 0)
+	{
+		end = omp_get_wtime();
+	        printf ("\nElapsed %.2lf SGDTime %.2lf sec CreateInM %.2lf CreateOutM %.2lf UpdateMin %.2lf UpdateMout %.2lf Overhead %.2lf\n", end-start,  sgemm1Time+sgemm2Time+sgemm3Time, iTime1, memcpyTime-iTime1, oTime1, oTime2, befForTime);
+	}
         _mm_free(inputM);
         _mm_free(outputM);
         _mm_free(outputMd);
