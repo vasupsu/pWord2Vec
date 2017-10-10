@@ -1,7 +1,7 @@
 # pSGNScc
 This is the C++ implementation of the Context Combining optimization of Word2Vec described in the paper titled,
 
-###Optimizing \WordVec Performance on Multicore Systems, accepted at IA^3 2017 - the Seventh Workshop on Irregular Applications: Architectures & Algorithms, co-located with SC17 
+### Optimizing Word2Vec Performance on Multicore Systems, accepted at IA^3 2017 - the Seventh Workshop on Irregular Applications: Architectures & Algorithms, co-located with SC17 
 
 The code is developed based on the [original pWord2Vec](https://github.com/IntelLabs/pWord2Vec.git) implementation described in the paper [Parallelizing Word2Vec in Shared and Distributed Memory](https://arxiv.org/abs/1604.04661), arXiv, 2016.
 
@@ -38,7 +38,7 @@ This installation will  produce three binaries: word2vec, pWord2Vec and pSGNScc.
 4. The directory IA3_AE_test_cases contain BASH test scripts for validating the results in our IA^3 submission. Each test script validates one Figure or Table present in the Experiments and Results section of the paper. The name of each test script corresponds to the Figure or Table number in the paper it validates.
 
 ## Reference
-1. [Optimizing \WordVec Performance on Multicore Systems](https://github.com/vasupsu/pWord2Vec), accepted at IA^3 2017.
+1. [Optimizing Word2Vec Performance on Multicore Systems](https://github.com/vasupsu/pWord2Vec), accepted at IA^3 2017.
 2. [Parallelizing Word2Vec in Shared and Distributed Memory](https://arxiv.org/abs/1604.04661), arXiv, 2016.
 3. [Parallelizing Word2Vec in Multi-Core and Many-Core Architectures](https://arxiv.org/abs/1611.06172), in NIPS workshop on Efficient Methods for Deep Neural Networks, Dec. 2016.
 
