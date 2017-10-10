@@ -14,7 +14,7 @@ The code is developed and tested on UNIX-based systems with the following softwa
 - [Intel Compiler](https://software.intel.com/en-us/qualify-for-free-software) (The code is optimized on Intel CPUs)
 - OpenMP (No separated installation is needed once Intel compiler is installed)
 - MKL (The latest version "16.0.0 or higher" is preferred as it has been improved significantly in recent years)
-- [HyperWords](https://bitbucket.org/omerlevy/hyperwords) (for model accuracy evaluation)
+- [HyperWords](https://bitbucket.org/omerlevy/hyperwords) (for model accuracy evaluation). This package is included in this repository.
 - Numactl package (for multi-socket NUMA systems)
 
 ## Environment Setup
@@ -33,7 +33,7 @@ sudo apt-get install numactl (on Ubuntu)
 ## Quick Start
 1. Download the code: ```git clone git@github.com:vasupsu/pWord2Vec.git```
 2. Run make to build the package  
-This installation will  produce three binaries: word2vec, pWord2Vec and pSGNScc. These correspond to the original implementation of Word2Vec found in this [GIT repository](https://github.com/dav/word2vec.git), [original pWord2Vec](https://github.com/IntelLabs/pWord2Vec.git) and our pSGNScc context combining approach. The other implementations are included for performance comparison and verification.
+This installation will  produce three binaries: word2vec, pWord2Vec and pSGNScc. These correspond to the original implementation of Word2Vec found in this [GIT repository](https://github.com/dav/word2vec.git), [original pWord2Vec](https://github.com/IntelLabs/pWord2Vec.git) and our pSGNScc context combining approach respectively. The other implementations are included for performance comparison and verification.
 3. Download the data: ```cd data; .\getText8.sh or .\getBillion.sh```
 4. The directory IA3_AE_test_cases contain BASH test scripts for validating the results in our IA^3 submission. Each test script validates one Figure or Table present in the Experiments and Results section of the paper. The name of each test script corresponds to the Figure or Table number in the paper it validates.
 
