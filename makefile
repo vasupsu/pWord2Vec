@@ -1,14 +1,18 @@
-CC = icpc
+CXX = icpc
+CC = icc
 MPICC = mpiicpc
-CFLAGS = -std=c++11 -qopenmp -O3 -D USE_MKL -mkl=sequential -Wall -xhost
+CPPFLAGS = -std=c++11 -qopenmp -O3 -D USE_MKL -mkl=sequential -Wall -xhost
+CFLAGS = -lm -pthread -O3 -march=native -Wall -funroll-loops -Wno-unused-result
 
-all: pSGNScc pWord2Vec
+all: pSGNScc pWord2Vec word2vec
 
 pSGNScc: pSGNScc.cpp
-	$(CC) pSGNScc.cpp -o pSGNScc $(CFLAGS)
+	$(CXX) pSGNScc.cpp -o pSGNScc $(CPPFLAGS)
 pWord2Vec: pWord2Vec.cpp
-	$(CC) pWord2Vec.cpp -o pWord2Vec $(CFLAGS)
+	$(CXX) pWord2Vec.cpp -o pWord2Vec $(CPPFLAGS)
+word2vec : word2vec.c
+	$(CC) word2vec.c -o word2vec $(CFLAGS)
 pWord2Vec_mpi: pWord2Vec_mpi.cpp
-	$(MPICC) pWord2Vec_mpi.cpp -o pWord2Vec_mpi $(CFLAGS)
+	$(MPICC) pWord2Vec_mpi.cpp -o pWord2Vec_mpi $(CPPFLAGS)
 clean:
 	rm -rf pWord2Vec pWord2Vec_mpi 

@@ -584,6 +584,7 @@ void Train_SGNS() {
                             continue;
                     }
                     sen[sentence_length] = w;
+                    //count words
                     startOfs[w+2]++;
                     sentence_length++;
                     if (sentence_length >= MAX_SENTENCE_LENGTH) break;
@@ -593,6 +594,7 @@ void Train_SGNS() {
                     stime = omp_get_wtime(); 
                     fileReadTime  += (stime - etime);
                 }
+                //create inverse index
                 for (int i=1; i<=vocab_hash_size; i++)
                 {
                     startOfs[i] = startOfs[i-1] + startOfs[i+1];
@@ -685,6 +687,7 @@ void Train_SGNS() {
                 {
                     stime = omp_get_wtime();
                 }
+                //Find negative samples 
                 for (int k = 0; k < negative; k++) {
                     next_random = next_random * (ulonglong) 25214903917 + 11;
                     int sample = table[(next_random >> 16) % table_size];
@@ -708,6 +711,7 @@ void Train_SGNS() {
 
                 int numWindows = 1;
                 int found=1;
+                //While loop finds up to NUM_SHARED_WINDOWS related windows
                 while (found && (numWindows < NUM_SHARED_WINDOWS))
                 {
                     found=0;
@@ -948,7 +952,9 @@ void Train_SGNS() {
         {
             end = omp_get_wtime();
 //            printf ("\nword_count_actual %llu, Time %lf sgemm1 %.2lf(%llu/%lf) flops, sgemm2 %.2lf(%llu/%lf) flops, sgemm3 %.2lf(%llu/%lf) flops graphTraversal+icopy1+icopy2 %.2lf(%.2lf+%.2lf+%.2lf) sec, graphConsTime %.2lf sec, fileReadTime %.2lf sec, matrixTime %.2lf oTime %.2lf + %.2lf sec \n", word_count_actual, end-start, sgemm1Fl*1E-9/sgemm1Time, sgemm1Fl, sgemm1Time, sgemm2Fl*1E-9/sgemm2Time, sgemm2Fl, sgemm2Time, sgemm3Fl*1E-9/sgemm3Time, sgemm3Fl, sgemm3Time, memcpyTime, graphTravTime, iTime1, iTime2, graphConsTime, fileReadTime, matrixTime, oTime1, oTime2);
-            printf ("\nElapsed %.2lf SGDTime %.2lf CreateInM %.2lf CreateOutM %.2lf UpdateMin %.2lf UpdateMout %.2lf Overhead %.2lf\n", end-start, matrixTime, iTime1, iTime2, oTime1, oTime2, memcpyTime-iTime1-iTime2 + fileReadTime + graphConsTime);
+            FILE *fpOut = fopen ("pSGNScc_time", "w");
+            fprintf (fpOut, "Elapsed %.2lf SGDTime %.2lf CreateInM %.2lf CreateOutM %.2lf UpdateMin %.2lf UpdateMout %.2lf Overhead %.2lf\n", end-start, matrixTime, iTime1, iTime2, oTime1, oTime2, memcpyTime-iTime1-iTime2 + fileReadTime + graphConsTime);
+            fclose (fpOut);
         }
 
         _mm_free(inputM);

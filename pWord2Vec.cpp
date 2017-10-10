@@ -714,7 +714,9 @@ void Train_SGNS() {
 	if (id == 0)
 	{
 		end = omp_get_wtime();
-	        printf ("\nElapsed %.2lf SGDTime %.2lf sec CreateInM %.2lf CreateOutM %.2lf UpdateMin %.2lf UpdateMout %.2lf Overhead %.2lf\n", end-start,  sgemm1Time+sgemm2Time+sgemm3Time, iTime1, memcpyTime-iTime1, oTime1, oTime2, befForTime);
+		FILE *fpOut = fopen ("pWord2Vec_time", "w");
+	        fprintf (fpOut, "Elapsed %.2lf SGDTime %.2lf CreateInM %.2lf CreateOutM %.2lf UpdateMin %.2lf UpdateMout %.2lf Overhead %.2lf\n", end-start,  sgemm1Time+sgemm2Time+sgemm3Time, iTime1, memcpyTime-iTime1, oTime1, oTime2, befForTime);
+		fclose (fpOut);
 	}
         _mm_free(inputM);
         _mm_free(outputM);
